@@ -12,22 +12,125 @@ pub struct DABA<Agg: Aggregator<Value: Clone> + Clone> {
 }
 
 macro_rules! assert_invariants {
-    ($s:ident) => {
+    ($s:expr) => {{
+        let s: &DABA<_> = $s;
         let e: usize = s.aggs.len();
         // SAFETY: these are universal invariants of `DABA`
         unsafe {
-            ::core::hint::assert_unchecked(e == self.vals.len());
-            ::core::hint::assert_unchecked(self.l <= self.r);
-            ::core::hint::assert_unchecked(self.r <= self.a);
-            ::core::hint::assert_unchecked(self.a <= self.b);
-            ::core::hint::assert_unchecked(self.b <= e);
+            ::core::hint::assert_unchecked(e == s.vals.len());
+            ::core::hint::assert_unchecked(s.l <= s.r);
+            ::core::hint::assert_unchecked(s.r <= s.a);
+            ::core::hint::assert_unchecked(s.a <= s.b);
+            ::core::hint::assert_unchecked(s.b <= e);
         }
         e
-    };
+    }};
 }
 
 impl<Agg: Aggregator<Value: Clone> + Clone> DABA<Agg> {
-    pub fn new() {}
+    #[inline]
+    pub fn new(expected_window_size: usize) -> Self {
+        Self {
+            vals: VecDeque::with_capacity(expected_window_size),
+            aggs: VecDeque::with_capacity(expected_window_size),
+            l: 0,
+            r: 0,
+            a: 0,
+            b: 0,
+        }
+    }
+
+    #[inline]
+    fn agg_f(&self) -> Agg {
+        assert_invariants!(self);
+
+        if self.b == 0 {
+            Agg::empty()
+        } else {
+            // SAFETY: there must be at least one element if b > 0
+            unsafe { self.aggs.front().unwrap_unchecked().clone() }
+        }
+    }
+
+    #[inline]
+    fn agg_b(&self) -> Agg {
+        let e = assert_invariants!(self);
+
+        if self.b == e {
+            Agg::empty()
+        } else {
+            // SAFETY: there must be at least one element if b < e
+            unsafe { self.aggs.back().unwrap_unchecked().clone() }
+        }
+    }
+
+    #[inline]
+    fn agg_l(&self) -> Agg {
+        assert_invariants!(self);
+
+        if self.l == self.r {
+            Agg::empty()
+        } else {
+            // SAFETY: there must be at least one element if l < r
+            unsafe { self.aggs.get(self.l).unwrap_unchecked().clone() }
+        }
+    }
+
+    #[inline]
+    fn agg_r(&self) -> Agg {
+        assert_invariants!(self);
+
+        if self.r == self.a {
+            Agg::empty()
+        } else {
+            // SAFETY: there must be at least one element if r < a, and a must be strictly positive
+            unsafe {
+                self.aggs
+                    .get(self.a.unchecked_sub(1))
+                    .unwrap_unchecked()
+                    .clone()
+            }
+        }
+    }
+
+    #[inline]
+    fn agg_a(&self) -> Agg {
+        assert_invariants!(self);
+
+        if self.a == self.b {
+            Agg::empty()
+        } else {
+            // SAFETY: there must be at least one element if a < b
+            unsafe { self.aggs.get(self.a).unwrap_unchecked().clone() }
+        }
+    }
+
+    #[inline]
+    pub fn current_summary(&self) -> Agg::Summary {
+        self.agg_f().merge(self.agg_b()).summarize()
+    }
+
+    #[inline]
+    pub fn push(&mut self, val: Agg::Value) {
+        assert_invariants!(self);
+
+        todo!()
+    }
+
+    #[inline]
+    pub fn discard(&mut self) {
+        assert_invariants!(self);
+
+        todo!()
+    }
+
+    fn fixup(&mut self) {
+        let e = assert_invariants!(self);
+        // SAFETY: this function is only called when the queues are nonempty
+        unsafe { core::hint::assert_unchecked(e > 0) };
+
+        todo!()
+    }
 }
 
 #[cfg(test)]
