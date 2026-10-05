@@ -1,8 +1,9 @@
 #![no_std]
 extern crate alloc;
 
-mod daba;
-pub use daba::*;
+pub mod aggregator;
 
-mod adaptor;
-pub use adaptor::*;
+pub mod daba;
+pub use daba::DABA;
+
+pub mod adaptor;
