@@ -114,20 +114,30 @@ impl<Agg: Aggregator<Value: Clone> + Clone> DABA<Agg> {
     pub fn push(&mut self, val: Agg::Value) {
         assert_invariants!(self);
 
-        todo!()
+        self.aggs
+            .push_back(self.agg_b().incorporate_after(val.clone()));
+        self.vals.push_back(val);
     }
 
     #[inline]
     pub fn discard(&mut self) {
-        assert_invariants!(self);
+        let e = assert_invariants!(self);
+        assert!(e > 0, "Attempted to discard from an empty window");
 
-        todo!()
+        // SAFETY: queues are known to be nonempty
+        unsafe {
+            self.vals.pop_front().unwrap_unchecked();
+            self.aggs.pop_front().unwrap_unchecked();
+        }
+
+        self.fixup();
     }
 
     fn fixup(&mut self) {
         let e = assert_invariants!(self);
-        // SAFETY: this function is only called when the queues are nonempty
-        unsafe { core::hint::assert_unchecked(e > 0) };
+        if e == 0 {
+            return;
+        }
 
         todo!()
     }

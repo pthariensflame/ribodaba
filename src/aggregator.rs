@@ -450,3 +450,65 @@ where
         }
     }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct Both<A, B>(pub A, pub B);
+
+impl<A, B> Both<A, B> {
+    #[inline]
+    pub fn swap(self) -> Both<B, A> {
+        Both(self.1, self.0)
+    }
+}
+
+impl<A, B> From<Both<A, B>> for (A, B) {
+    fn from(v: Both<A, B>) -> (A, B) {
+        (v.0, v.1)
+    }
+}
+
+impl<A, B> From<(A, B)> for Both<A, B> {
+    fn from((a, b): (A, B)) -> Both<A, B> {
+        Both(a, b)
+    }
+}
+
+impl<A, B> Aggregator for Both<A, B>
+where
+    A: Aggregator,
+    B: Aggregator,
+{
+    type Value = (A::Value, B::Value);
+
+    type Summary = (A::Summary, B::Summary);
+
+    #[inline]
+    fn from_value((a, b): Self::Value) -> Self {
+        Both(A::from_value(a), B::from_value(b))
+    }
+
+    #[inline]
+    fn summarize(self) -> Self::Summary {
+        (self.0.summarize(), self.1.summarize())
+    }
+
+    #[inline]
+    fn empty() -> Self {
+        Both(A::empty(), B::empty())
+    }
+
+    #[inline]
+    fn merge(self, other: Self) -> Self {
+        Both(self.0.merge(other.0), self.1.merge(other.1))
+    }
+
+    #[inline]
+    fn incorporate_before(self, (a, b): Self::Value) -> Self {
+        Both(self.0.incorporate_before(a), self.1.incorporate_before(b))
+    }
+
+    #[inline]
+    fn incorporate_after(self, (a, b): Self::Value) -> Self {
+        Both(self.0.incorporate_after(a), self.1.incorporate_after(b))
+    }
+}
